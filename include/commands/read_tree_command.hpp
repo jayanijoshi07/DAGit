@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 
 
 class ReadTreeCommand : public ICommand {

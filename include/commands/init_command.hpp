@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
                                
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 #include "../core/repository.hpp"
 class InitCommand : public ICommand{
 public:

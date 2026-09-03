@@ -1,6 +1,6 @@
 #pragma once
 
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 
 #include <string>
 

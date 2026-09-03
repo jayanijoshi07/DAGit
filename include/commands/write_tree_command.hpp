@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 
 class WriteTreeCommand : public ICommand{
 

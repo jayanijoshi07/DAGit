@@ -1,6 +1,6 @@
 #include <iostream>
-#include "..\..\include\core\commit.hpp"
-#include "..\..\include\core\repository.hpp"
+#include "../../include/core/commit.hpp"
+#include "../../include/core/repository.hpp"
 #include "../../include/core/tree.hpp"
 #include "../../include/core/object_store.hpp"
 

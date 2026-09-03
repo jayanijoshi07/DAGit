@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(DAGitPractice)
+project(DAGit)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(DAGitPractice
+add_executable(DAGit
     main.cpp
     src/command/hash_object_command.cpp
     src/command/cat_file_command.cpp
@@ -18,7 +18,7 @@ add_executable(DAGitPractice
 	src/core/commit.cpp
 )
 
-target_include_directories(DAGitPractice PRIVATE
+target_include_directories(DAGit PRIVATE
     include
 	"${CMAKE_CURRENT_SOURCE_DIR}/external/CLI"
 )
@@ -27,6 +27,6 @@ target_include_directories(DAGitPractice PRIVATE
 find_package(OpenSSL REQUIRED)
 
 target_link_libraries(
-    DAGitPractice PRIVATE
+    DAGit PRIVATE
     OpenSSL::Crypto
 )

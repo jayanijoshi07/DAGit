@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 class CatFileCommand : public ICommand{
 private :
     std::string oid;

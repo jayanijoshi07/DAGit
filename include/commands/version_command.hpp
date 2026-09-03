@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 class VersionCommand : public ICommand
 {
 public:

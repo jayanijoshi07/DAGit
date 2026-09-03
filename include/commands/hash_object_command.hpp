@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include ".\icommand.hpp"
+#include "./icommand.hpp"
 
 class HashObjectCommand : public ICommand{
 public:

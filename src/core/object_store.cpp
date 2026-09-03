@@ -7,8 +7,8 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "..\..\include\core\object_store.hpp"
-#include "..\..\include\core\repository.hpp"
+#include "../../include/core/object_store.hpp"
+#include "../../include/core/repository.hpp"
 
 namespace core
 {

@@ -15,10 +15,8 @@ int main(int argc, char* argv[])
 	CLI::App app{"DAGit"};
 	
 	app.require_subcommand(1);
-	if(std::string(argv[1])=="version"){
 	std::unique_ptr<ICommand> ver =std::make_unique<VersionCommand>();
 	ver->setup(app);
-	}
 											 
 	std::unique_ptr<ICommand> init =std::make_unique<InitCommand>();
 	init->setup(app);
