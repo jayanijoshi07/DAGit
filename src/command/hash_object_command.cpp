@@ -40,5 +40,5 @@ void HashObjectCommand::execute() {
     std::string data = buffer.str();
    
     std::string oid = core::ObjectStore::hash_object(data,"blob");
-    
+    std::cout << "oid : " << oid << std::endl;
 }
