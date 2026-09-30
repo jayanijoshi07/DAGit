@@ -5,6 +5,7 @@
 #include "include/commands/init_command.hpp"
 #include "include/commands/version_command.hpp"
 #include "include/commands/hash_object_command.hpp"
+#include "include/commands/add_command.hpp"
 #include "include/commands/cat_file_command.hpp"
 #include "include/commands/write_tree_command.hpp"
 #include "include/commands/read_tree_command.hpp"
@@ -23,6 +24,9 @@ int main(int argc, char* argv[])
 	                                           
 	std::unique_ptr<ICommand> hash = std::make_unique<HashObjectCommand>();
 	hash->setup(app);
+
+	std::unique_ptr<ICommand> add_s = std::make_unique<AddCommand>();
+	add_s->setup(app);
 
 	std::unique_ptr<ICommand> cat_file = std::make_unique<CatFileCommand>();
 	cat_file->setup(app);

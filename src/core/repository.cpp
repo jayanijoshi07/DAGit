@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 
 #include "../../include/core/repository.hpp"
 
@@ -32,6 +33,16 @@ bool Repository::init(const std::string& path)
         fs::create_directory(
             repoPath / "objects"
         );
+        std::ofstream index_file(repoPath / "index");
+
+        if(!index_file)
+        {
+            std::cerr
+                << "Failed to create index"
+                << std::endl;
+
+            return false;
+        }
                                
         std::cout
             << "Initialized empty DAGit repository in "

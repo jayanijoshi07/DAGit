@@ -12,17 +12,24 @@
 
 namespace core
 {
-std::string sha1_hex(const std::string& data)
+std::string sha256_hex(const std::string& data)
 {
-    unsigned char hash[SHA_DIGEST_LENGTH];
+    unsigned char hash[SHA256_DIGEST_LENGTH];
 
-    SHA1(reinterpret_cast<const unsigned char*>(data.c_str()),data.size(),hash);
+    SHA256(
+        reinterpret_cast<const unsigned char*>(data.c_str()),
+        data.size(),
+        hash
+    );
 
     std::stringstream ss;
 
-    for(int i = 0;i < SHA_DIGEST_LENGTH;++i)
+    for(int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
     {
-        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+        ss << std::hex
+           << std::setw(2)
+           << std::setfill('0')
+           << static_cast<int>(hash[i]);
     }
 
     return ss.str();
@@ -41,7 +48,7 @@ std::string ObjectStore::hash_object(const std::string& data,const std::string& 
 
     std::string object = type + '\0' + data;
 
-    std::string oid = sha1_hex(object);
+    std::string oid = sha256_hex(object);
 
     std::filesystem::path objectPath =repo.value() / ".dagit" / "objects" / oid;
 
