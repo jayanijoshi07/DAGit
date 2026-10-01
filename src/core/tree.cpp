@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <set>
 #include "../../include/core/tree.hpp"
 #include "../../include/core/object_store.hpp"
 #include "../../include/core/repository.hpp"
@@ -12,49 +13,105 @@
                                                
 namespace core
 {
-std::string Tree::write_tree(const std::filesystem::path &path ){
-                                               
-    std::cout << "Tree::write_tree" << path << std::endl;
+static std::string build_tree(
+    const std::filesystem::path& directory,
+    const std::map<std::filesystem::path, std::string>& staged_files)
+{
     std::vector<std::string> entries;
-    for (const auto &entry : std::filesystem::directory_iterator(path)){
-        if (entry.path().filename() == ".dagit" || entry.path().filename() == "DAGitPractice.exe")
-		{
-			continue;
-		}
-        if (std::filesystem::is_regular_file(entry))
-		{   
-            std::cout << entry << std::endl;
-			std::ifstream in(entry.path(),std::ios::binary);
-            if (!in)
-			{
-				throw std::runtime_error("Failed to open file: " +entry.path().string());
-			}
-            std::stringstream buffer;
-			buffer << in.rdbuf();
 
-			std::string content =buffer.str();
-			std::string oid =ObjectStore::hash_object(content,"blob");
-            entries.push_back("blob " +oid +" " +entry.path().filename().string());
-
-            std::cout << oid << std::endl;
-            
-
+    for (const auto &[file_path, oid] : staged_files)
+    {
+        if (file_path.parent_path() == directory)
+        {
+            entries.push_back(
+                "blob " + oid + " " + file_path.filename().string()
+            );
         }
-        else if (std::filesystem::is_directory(entry))
-		{
-			std::string oid = write_tree(entry.path());
-			entries.push_back("tree " +oid +" " + entry.path().filename().string());
-		}
-    }//for
-    std::sort(entries.begin(),entries.end());
-    std::string tree_data = "";
-    for (const auto &e : entries)
-	{
-		tree_data = tree_data + e + '\n';
     }
-    std::string ans = ObjectStore::hash_object(tree_data,"tree");
-    return ans;
 
+    std::set<std::filesystem::path> subdirectories;
+
+    for (const auto &[file_path, oid] : staged_files)
+    {
+        auto parent = file_path.parent_path();
+
+        if (parent != directory && !parent.empty())
+        {
+            auto relative = std::filesystem::relative(parent, directory);
+
+            if (!relative.empty())
+            {
+                auto first_directory = relative.begin();
+
+                if (*first_directory != "..")
+                {
+                    subdirectories.insert(
+                        directory / *first_directory
+                    );
+                }
+            }
+        }
+    }
+
+    for (const auto &subdirectory : subdirectories)
+    {
+        std::string subtree_oid =
+            build_tree(subdirectory, staged_files);
+
+        entries.push_back(
+            "tree " + subtree_oid + " " +
+            subdirectory.filename().string()
+        );
+    }
+
+    std::sort(entries.begin(), entries.end());
+
+    std::string tree_data;
+
+    for (const auto &entry : entries)
+    {
+        tree_data += entry + '\n';
+    }
+
+    return ObjectStore::hash_object(tree_data, "tree");
+}//build_tree
+std::string Tree::write_tree(const std::filesystem::path &path )
+{
+    auto repo = Repository::find_repo_root();
+
+    if (!repo)
+    {
+        throw std::runtime_error("Not inside DAGit repository");
+    }
+
+    std::filesystem::path index_path = *repo / ".dagit" / "index";
+
+    std::ifstream index(index_path);
+
+    if (!index)
+    {
+        throw std::runtime_error("Failed to open index");
+    }
+
+    std::cout << "Tree::write_tree" << path << std::endl;
+
+    std::map<std::filesystem::path, std::string> staged_files;
+
+    std::string line;
+
+    while (std::getline(index, line))
+    {
+        std::stringstream ss(line);
+
+        std::string file_path;
+        std::string oid;
+
+        ss >> file_path >> oid;
+
+        staged_files[file_path] = oid;
+    }
+
+    return build_tree(std::filesystem::path(), staged_files);
 } // std::string Tree::write_tree(const std::filesystem::path &path )
 void Tree::get_tree(const std::string &tree_oid,const std::filesystem::path &base_path,std::map<std::filesystem::path,std::string> &entries)
 {
