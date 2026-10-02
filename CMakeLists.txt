@@ -13,6 +13,7 @@ add_executable(DAGit
     src/command/read_tree_command.cpp
     src/command/commit_command.cpp
     src/command/add_command.cpp
+    src/command/status_command.cpp
     src/core/repository.cpp
 	src/core/object_store.cpp
     src/core/tree.cpp
