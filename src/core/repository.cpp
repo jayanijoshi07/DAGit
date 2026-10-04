@@ -13,54 +13,48 @@ bool Repository::init(const std::string& path)
 {
     try
     {
-        fs::path repoPath =
-            fs::path(path) / ".dagit";
+        fs::path repoPath = fs::path(path) / ".dagit";
 
-        // Check if already exists
         if(fs::exists(repoPath))
         {
-            std::cout
-                << ".dagit already exists"
-                << std::endl;
-
+            std::cout << ".dagit already exists" << std::endl;
             return false;
         }
 
-        // Create .dagit
         fs::create_directory(repoPath);
 
-        // Create .dagit/objects
-        fs::create_directory(
-            repoPath / "objects"
-        );
+        fs::create_directory(repoPath / "objects");
+
+        fs::create_directories(repoPath / "refs" / "heads");
+
         std::ofstream index_file(repoPath / "index");
 
         if(!index_file)
         {
-            std::cerr
-                << "Failed to create index"
-                << std::endl;
-
+            std::cerr << "Failed to create index" << std::endl;
             return false;
         }
-                               
-        std::cout
-            << "Initialized empty DAGit repository in "
-            << repoPath
-            << std::endl;
+
+        std::ofstream head_file(repoPath / "HEAD");
+
+        if(!head_file)
+        {
+            std::cerr << "Failed to create HEAD" << std::endl;
+            return false;
+        }
+
+        head_file << "main\n";
+
+        std::cout << "Initialized empty DAGit repository in " << repoPath << std::endl;
 
         return true;
     }
     catch(const fs::filesystem_error& e)
     {
-        std::cerr
-            << "Filesystem error: "
-            << e.what()
-            << std::endl;
-
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
         return false;
     }
-} // bool Repository::init(const std::string& path)
+}
 
 std::optional<fs::path> Repository::find_repo_root(const fs::path& start)
 {
@@ -79,6 +73,6 @@ std::optional<fs::path> Repository::find_repo_root(const fs::path& start)
     }
 
     return std::nullopt;
-} // std::optional<fs::path> Repository::find_repo_root(const fs::path& start)
+}
 
-} // namespace core {
+}

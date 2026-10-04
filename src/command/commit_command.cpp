@@ -16,5 +16,5 @@ void CommitCommand::setup(CLI::App& app) {
     cmd->add_option("-m,--message",message,"Commit message")->required();
     cmd->callback([&](){
         execute();
-    });
+    });                                       
 }

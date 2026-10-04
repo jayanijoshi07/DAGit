@@ -10,12 +10,15 @@ add_executable(DAGit
     src/command/hash_object_command.cpp
     src/command/cat_file_command.cpp
     src/command/write_tree_command.cpp
-    src/command/read_tree_command.cpp
-    src/command/commit_command.cpp
     src/command/add_command.cpp
+    src/command/commit_command.cpp
     src/command/status_command.cpp
+    src/command/log_command.cpp
+    src/command/branch_command.cpp
+    src/command/checkout_command.cpp
     src/core/repository.cpp
 	src/core/object_store.cpp
+    src/command/read_tree_command.cpp
     src/core/tree.cpp
 	src/core/commit.cpp
 )

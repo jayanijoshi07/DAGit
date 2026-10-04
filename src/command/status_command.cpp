@@ -66,9 +66,7 @@ void StatusCommand::execute()
 
         if (!in)
         {
-            throw std::runtime_error(
-                "Failed to open file: " + file_path
-            );
+            throw std::runtime_error( "Failed to open file: " + file_path);
         }
 
         std::stringstream buffer;
@@ -76,8 +74,7 @@ void StatusCommand::execute()
 
         std::string content = buffer.str();
 
-        std::string current_oid =
-            core::ObjectStore::hash_object(content, "blob");
+        std::string current_oid = core::ObjectStore::hash_object(content, "blob");
 
         if (current_oid != staged_oid)
         {
@@ -99,14 +96,11 @@ void StatusCommand::execute()
             continue;
         }
 
-        std::filesystem::path relative =
-            std::filesystem::relative(entry.path(), *repo);
+        std::filesystem::path relative = std::filesystem::relative(entry.path(), *repo);
 
         if (tracked_files.find(entry.path()) == tracked_files.end())
         {
-            std::cout << "untracked: "
-                      << relative.string()
-                      << std::endl;
+            std::cout << "untracked: " << relative.string()<< std::endl;
 
             has_changes = true;
         }

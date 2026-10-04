@@ -13,9 +13,7 @@
                                                
 namespace core
 {
-static std::string build_tree(
-    const std::filesystem::path& directory,
-    const std::map<std::filesystem::path, std::string>& staged_files)
+static std::string build_tree(const std::filesystem::path& directory,const std::map<std::filesystem::path, std::string>& staged_files)
 {
     std::vector<std::string> entries;
 
@@ -23,9 +21,7 @@ static std::string build_tree(
     {
         if (file_path.parent_path() == directory)
         {
-            entries.push_back(
-                "blob " + oid + " " + file_path.filename().string()
-            );
+            entries.push_back("blob " + oid + " " + file_path.filename().string() );
         }
     }
 
@@ -45,9 +41,7 @@ static std::string build_tree(
 
                 if (*first_directory != "..")
                 {
-                    subdirectories.insert(
-                        directory / *first_directory
-                    );
+                    subdirectories.insert(directory / *first_directory);
                 }
             }
         }
@@ -55,13 +49,9 @@ static std::string build_tree(
 
     for (const auto &subdirectory : subdirectories)
     {
-        std::string subtree_oid =
-            build_tree(subdirectory, staged_files);
+        std::string subtree_oid = build_tree(subdirectory, staged_files);
 
-        entries.push_back(
-            "tree " + subtree_oid + " " +
-            subdirectory.filename().string()
-        );
+        entries.push_back( "tree " + subtree_oid + " " + subdirectory.filename().string() );
     }
 
     std::sort(entries.begin(), entries.end());
@@ -143,56 +133,73 @@ void Tree::get_tree(const std::string &tree_oid,const std::filesystem::path &bas
         }
     }
 } // end of void Tree::get_tree
-void Tree::read_tree(const std::string &tree_oid){
-    auto repo_root =Repository::find_repo_root();
-	if (!repo_root)
-	{
-		throw std::runtime_error("Not inside a DAGit repository");
-	}
-    std::map<std::filesystem::path,std::string> entries;
-    get_tree(tree_oid,"",entries);
+void Tree::read_tree(const std::string &tree_oid)
+{
+    auto repo_root = Repository::find_repo_root();
+
+    if (!repo_root)
+    {
+        throw std::runtime_error("Not inside a DAGit repository");
+    }
+
+    std::map<std::filesystem::path, std::string> entries;
+
+    get_tree(tree_oid, "", entries);
+
     std::vector<std::filesystem::path> paths_to_remove;
-		
-    for (const auto &entry :std::filesystem::recursive_directory_iterator(*repo_root))
+
+    for (const auto &entry : std::filesystem::recursive_directory_iterator(*repo_root))
     {
         // Ignore .dagit
-        if (entry.path().string().find(".dagit")!= std::string::npos)
+        if (entry.path().string().find(".dagit") != std::string::npos)
         {
             continue;
         }
-        
+
         paths_to_remove.push_back(entry.path());
     }
-    
-    std::sort(paths_to_remove.begin(),paths_to_remove.end(),[](const std::filesystem::path &a,const std::filesystem::path &b)
-        {
-            return a.string().size()
-                    > b.string().size();
-        }
-    );
-    
+
+    std::sort(paths_to_remove.begin(), paths_to_remove.end(), [](const std::filesystem::path &a, const std::filesystem::path &b)
+    {
+        return a.string().size() > b.string().size();
+    });
+
     for (const auto &path : paths_to_remove)
     {
         std::filesystem::remove(path);
     }
-    
+
     for (const auto &[path, oid] : entries)
     {
         std::filesystem::path full_path = *repo_root / path;
-        
+
         std::filesystem::create_directories(full_path.parent_path());
-        
-        std::string content = ObjectStore::get_object(oid,"blob");
-        
-        std::ofstream out(full_path,std::ios::binary);
-        
+
+        std::string content = ObjectStore::get_object(oid, "blob");
+
+        std::ofstream out(full_path, std::ios::binary);
+
         if (!out)
         {
             throw std::runtime_error("Failed to write file: " + full_path.string());
         }
-        
+
         out << content;
     }
 
+    // Update index to match the checked-out tree
+    std::filesystem::path index_path = *repo_root / ".dagit" / "index";
+
+    std::ofstream index(index_path, std::ios::trunc);
+
+    if (!index)
+    {
+        throw std::runtime_error("Failed to update index");
+    }
+
+    for (const auto &[path, oid] : entries)
+    {
+        index << path.string() << " " << oid << "\n";
+    }
 }//read-tree
 } // core
