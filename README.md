@@ -1,453 +1,504 @@
 # DAGit
 
-A lightweight Git-like version control system implemented in **C++17**.
+DAGit is a lightweight Git-like version control system implemented in **C++17** as part of the WEC Systems assignment.
 
-DAGit is a learning-focused implementation of core Git concepts such as repositories, content-addressable object storage, SHA-1 object identification, trees, and commits. The project was built to understand how Git works internally rather than simply using Git commands.
+The project implements the core ideas behind Git, including content-addressable objects, a staging area, trees, commits, branches, checkout, and commit history.
 
 ## Features
 
-### Repository Management
+* Repository initialization
+* SHA-256 based object identification
+* Blob object storage
+* Staging area (index)
+* Tree objects
+* Commit objects
+* Branch creation
+* Branch checkout
+* Commit history
+* Working-tree status
+* Reading and restoring tree snapshots
 
-* Initialize a DAGit repository using `init`
-* Creates a `.dagit` directory
-* Creates an object store at `.dagit/objects`
-* Automatically searches parent directories for the nearest DAGit repository
+## Architecture
 
-### Content-Addressable Object Storage
-
-* Stores objects using SHA-1 object IDs
-* Supports different object types:
-
-  * `blob`
-  * `tree`
-  * `commit`
-* Identical objects are reused instead of being stored multiple times
-* Objects are stored using the format:
+DAGit's repository state can be understood as:
 
 ```text
-type\0content
+Working Directory
+       |
+     add
+       v
+     Index
+       |
+  write-tree
+       v
+     Tree
+       |
+    commit
+       v
+    Commit
+       |
+       v
+Branch Reference
+       ^
+       |
+      HEAD
 ```
 
-### Blob Objects
+### Working Directory
 
-Files are stored as blob objects.
+Contains the actual files being edited by the user.
 
-The SHA-1 object ID depends on the object's type and content, not its filename.
+### Index
 
-This means two files containing identical content can reference the same blob object.
+The staging area stores the repository-relative file path and the SHA-256 object ID of the staged blob.
 
-### Tree Objects
+Example:
 
-DAGit recursively converts a directory structure into tree objects.
+```text
+main.cpp abc123...
+src/a.cpp 98fedc...
+```
+
+### Objects
+
+DAGit stores objects using their SHA-256 object IDs. The main object types are:
+
+* **Blob** — stores file contents
+* **Tree** — stores a directory snapshot and references blobs/subtrees
+* **Commit** — stores a tree reference, parent commit, author, and message
+
+### Commits
+
+A commit points to a tree and, except for the first commit, its parent commit.
+
+```text
+C3
+ |
+C2
+ |
+C1
+```
+
+This parent relationship allows DAGit to walk backward through history.
+
+### Branches
+
+A branch is a reference to the latest commit.
 
 For example:
 
 ```text
-project/
-├── main.cpp
-├── README.md
-└── src/
-    └── test.cpp
+refs/heads/main    -> C3
+refs/heads/feature -> C2
 ```
 
-is represented conceptually as:
+Creating a branch does not copy files or objects. It creates another reference to an existing commit.
+
+### HEAD
+
+`HEAD` stores the name of the currently checked-out branch.
+
+Example:
 
 ```text
-tree
-├── blob  <oid> main.cpp
-├── blob  <oid> README.md
-└── tree  <oid> src
-    └── blob <oid> test.cpp
+HEAD
+ |
+ +-- main
+      |
+      +-- refs/heads/main
+              |
+              +-- C3
 ```
-
-Changing a file creates a new blob and consequently changes the tree object representing its directory.
-
-### Commit Objects
-
-DAGit can create a commit object containing the tree associated with the current working directory and a commit message.
-
-The current commit representation is:
-
-```text
-tree <tree_oid>
-
-<commit message>
-```
-
-## Available Commands
-
-### Initialize Repository
-
-```bash
-DAGit init
-```
-
-Creates a new `.dagit` repository in the current directory.
-
-### Display Version
-
-```bash
-DAGit version
-```
-
-Displays the current DAGit version.
-
-### Hash a File
-
-```bash
-DAGit hash-object <file>
-```
-
-Reads a file and stores it as a blob object using SHA-1 content addressing.
-
-### Display an Object
-
-```bash
-DAGit cat-file <oid>
-```
-
-Reads an object from the DAGit object store and displays its contents.
-
-### Write Working Tree
-
-```bash
-DAGit write-tree
-```
-
-Recursively converts the current working directory into tree objects and returns the root tree's object ID.
-
-### Restore a Tree
-
-```bash
-DAGit read-tree <tree_oid>
-```
-
-Reads a tree object and restores the files represented by that tree into the working directory.
-
-> **Warning:** The current implementation is destructive and can remove existing working-tree files. Do not use this command on files you need to preserve.
-
-### Create a Commit
-
-```bash
-DAGit commit -m "Initial commit"
-```
-
-Creates a commit object using the current working tree and the supplied commit message.
-
-## Project Structure
-
-```text
-DAGit/
-│
-├── main.cpp
-├── CMakeLists.txt
-│
-├── include/
-│   ├── commands/
-│   │   ├── cat_file_command.hpp
-│   │   ├── commit_command.hpp
-│   │   ├── hash_object_command.hpp
-│   │   ├── icommand.hpp
-│   │   ├── init_command.hpp
-│   │   ├── read_tree_command.hpp
-│   │   ├── version_command.hpp
-│   │   └── write_tree_command.hpp
-│   │
-│   └── core/
-│       ├── commit.hpp
-│       ├── object_store.hpp
-│       ├── repository.hpp
-│       └── tree.hpp
-│
-├── src/
-│   ├── command/
-│   │   ├── cat_file_command.cpp
-│   │   ├── commit_command.cpp
-│   │   ├── hash_object_command.cpp
-│   │   ├── read_tree_command.cpp
-│   │   └── write_tree_command.cpp
-│   │
-│   └── core/
-│       ├── commit.cpp
-│       ├── object_store.cpp
-│       ├── repository.cpp
-│       └── tree.cpp
-│
-└── external/
-    └── CLI11/
-```
-
-## Architecture
-
-DAGit is divided into two main layers.
-
-### Command Layer
-
-The command layer handles the CLI interface:
-
-```text
-init
-version
-hash-object
-cat-file
-write-tree
-read-tree
-commit
-```
-
-Commands implement the common `ICommand` interface.
-
-### Core Layer
-
-The core layer contains the actual version-control logic:
-
-```text
-Repository
-    │
-    ├── Repository discovery
-    └── Repository initialization
-     
-ObjectStore
-    │
-    ├── SHA-1 hashing
-    ├── Object storage
-    ├── Object lookup
-    └── Object retrieval
-
-Tree
-    │
-    ├── Directory traversal
-    ├── Tree creation
-    ├── Tree traversal
-    └── Working-tree restoration
-
-Commit
-    │
-    └── Commit object creation
-```
-
-## Technologies Used
-
-* **C++17**
-* **CMake**
-* **OpenSSL Crypto**
-* **CLI11**
-* `std::filesystem`
-* `std::unordered_map`
-* `std::map`
-* C++ smart pointers
-* SHA-1 hashing
-
-## Building the Project
-
-### Prerequisites
-
-Make sure the following are installed:
-
-* C++17-compatible compiler
-* CMake 3.16+
-* OpenSSL
-* Git
-
-### Build
-
-Clone the repository:
-
-```bash
-git clone <your-repository-url>
-cd DAGit
-```
-
-Create a build directory:
-
-```bash
-cmake -S . -B build
-```
-
-Build the project:
-
-```bash
-cmake --build build
-```
-
-The resulting executable will be generated inside the build directory.
-
-## Example Workflow
-
-Create a test directory:
-
-```bash
-mkdir test_repo
-cd test_repo
-```
-
-Initialize DAGit:
-
-```bash
-DAGit init
-```
-
-Create a file:
-
-```bash
-echo "Hello DAGit" > hello.txt
-```
-
-Write the working tree:
-
-```bash
-DAGit write-tree
-```
-
-This produces a tree object ID.
-
-Create a commit:
-
-```bash
-DAGit commit -m "Initial commit"
-```
-
-DAGit creates a commit object referencing the generated tree.
-
-## How DAGit Represents Files
-
-A file is stored as a blob:
-
-```text
-file content
-      │
-      ▼
-  SHA-1 hash
-      │
-      ▼
-  Blob object
-```
-
-A directory is represented by a tree:
-
-```text
-          Tree
-        /      \
-      Blob     Tree
-       │       /  \
-     file    Blob Blob
-```
-
-This creates a hierarchy of content-addressed objects.
-
-A commit then points to the root tree:
-
-```text
-Commit
-   │
-   ▼
-Root Tree
-   │
-   ├── Blob
-   ├── Blob
-   └── Tree
-        ├── Blob
-        └── Blob
-```
-
-## Design Principles
-
-### Content Addressing
-
-Objects are identified by the SHA-1 hash of their type and content.
 
 Therefore:
 
 ```text
-same type + same content
-        ↓
-same object ID
+HEAD -> current branch -> latest commit
 ```
 
-This naturally allows object reuse.
+## Repository Structure
 
-### Immutable Objects
+After running `DAGit init`, the repository contains:
 
-Once an object is created, changing the content results in a new object ID rather than modifying the old object.
+```text
+.dagit/
+├── objects/
+├── index
+├── HEAD
+└── refs/
+    └── heads/
+```
+
+* `objects/` — stores blob, tree, and commit objects
+* `index` — staging area
+* `HEAD` — current branch name
+* `refs/heads/` — branch references
+
+## Commands
+
+### `init`
+
+Initializes a new DAGit repository.
+
+```bash
+DAGit init
+```
+
+Creates the `.dagit` directory, object store, index, `HEAD`, and branch-reference directory.
+
+---
+
+### `add`
+
+Stages a file.
+
+```bash
+DAGit add main.cpp
+DAGit add src/a.cpp
+```
+
+The command:
+
+1. Reads the file.
+2. Creates a blob object using its contents.
+3. Calculates its SHA-256 object ID.
+4. Updates the index with the file path and blob ID.
+
+Example index:
+
+```text
+main.cpp abc123...
+src/a.cpp 98fedc...
+```
+
+---
+
+### `write-tree`
+
+Creates a tree object from the current index.
+
+```bash
+DAGit write-tree
+```
+
+The tree represents the staged directory structure.
+
+---
+
+### `read-tree`
+
+Restores files from a tree object.
+
+```bash
+DAGit read-tree <tree-oid>
+```
+
+It restores the working directory and updates the index to match the tree.
+
+---
+
+### `commit`
+
+Creates a commit from the current staged state.
+
+```bash
+DAGit commit "Initial commit"
+```
+
+The commit process is:
+
+```text
+HEAD
+  |
+current branch
+  |
+previous commit
+  |
+index
+  |
+write-tree
+  |
+new tree
+  |
+new commit
+  |
+update branch reference
+```
+
+A commit contains:
+
+```text
+tree <tree-oid>
+author <author>
+parent <parent-oid>    # except for the first commit
+message <message>
+```
+
+The current branch reference is then updated to the new commit.
+
+---
+
+### `branch`
+
+Creates a new branch from the current commit.
+
+```bash
+DAGit branch feature
+```
+
+If:
+
+```text
+main -> C2
+```
+
+then:
+
+```text
+main    -> C2
+feature -> C2
+```
+
+Creating a branch does **not** switch to it.
+
+---
+
+### `checkout`
+
+Switches to another branch.
+
+```bash
+DAGit checkout feature
+```
+
+The checkout process is:
+
+```text
+feature branch
+      |
+      v
+latest commit
+      |
+      v
+commit's tree
+      |
+      v
+read-tree
+      |
+      +--> working directory
+      |
+      +--> index
+      |
+      v
+HEAD = feature
+```
+
+The working directory and index are therefore updated to match the checked-out branch.
+
+---
+
+### `status`
+
+Shows changes between the working directory and the staged state.
+
+```bash
+DAGit status
+```
+
+It can report:
+
+```text
+modified: file.cpp
+deleted: file.cpp
+untracked: new.cpp
+```
+
+If there are no changes:
+
+```text
+working tree clean
+```
+
+---
+
+### `log`
+
+Displays the commit history of the current branch.
+
+```bash
+DAGit log
+```
+
+The command starts from:
+
+```text
+HEAD
+  |
+current branch
+  |
+latest commit
+```
+
+and follows the parent references:
+
+```text
+C3 -> C2 -> C1
+```
+
+It therefore shows the history reachable from the currently checked-out branch, not commits from unrelated branches.
+
+## Example Workflow
+
+Initialize a repository:
+
+```bash
+DAGit init
+```
+
+Stage a file:
+
+```bash
+DAGit add main.cpp
+```
+
+Create the first commit:
+
+```bash
+DAGit commit "Initial commit"
+```
+
+Create a branch:
+
+```bash
+DAGit branch feature
+```
+
+Switch to it:
+
+```bash
+DAGit checkout feature
+```
+
+Make changes and stage them:
+
+```bash
+DAGit add main.cpp
+```
+
+Commit the changes:
+
+```bash
+DAGit commit "Added feature"
+```
+
+View the current branch history:
+
+```bash
+DAGit log
+```
+
+Switch back:
+
+```bash
+DAGit checkout main
+```
+
+## Branch Model
+
+DAGit uses lightweight branch references.
 
 For example:
 
 ```text
-file.txt
-   │
-   ▼
-Blob A
+                 C1
+                /  \
+               /    \
+            main   feature
+              |       |
+              C2      C3
+              ^
+              |
+             HEAD
 ```
 
-After changing the file:
+When `HEAD` points to `main`:
 
 ```text
-file.txt
-   │
-   ▼
-Blob B
+HEAD -> main -> C2
 ```
 
-`Blob A` still exists in the object store.
+When checking out `feature`:
 
-### Recursive Trees
+```text
+HEAD -> feature -> C3
+```
 
-Trees represent directory hierarchy recursively. A change deep inside a directory therefore changes the tree ID of that directory and propagates upward to the root tree.
+The commits themselves are not copied. Only the branch reference and HEAD change.
 
-## Current Limitations
+## Object Model
 
-DAGit is a learning implementation and is **not intended to be a drop-in replacement for Git**.
+DAGit uses content-addressable storage.
 
-Current limitations include:
+```text
+File contents
+     |
+     v
+SHA-256
+     |
+     v
+Blob OID
+```
 
-* No staging area/index
-* No branches
-* No HEAD/reference management
-* No parent commit relationships
-* No author/committer metadata
-* No timestamps in commits
-* No merge functionality
-* No checkout implementation comparable to Git
-* No object compression
-* No Git-compatible object format
-* No garbage collection
-* Limited working-tree safety checks
-* `read-tree` can overwrite/remove existing files
-* Some command output and error handling are still basic
+Trees reference blobs:
 
-## Future Improvements
+```text
+Tree
+├── main.cpp -> Blob A
+└── src/
+    └── a.cpp -> Blob B
+```
 
-Possible future additions:
+Commits reference trees:
 
-* Implement parent commits
-* Add `HEAD` and branch references
-* Implement a staging area/index
-* Add `status`
-* Add `log`
-* Implement checkout
-* Improve object format compatibility
-* Add safer working-tree restoration
-* Add commit metadata and timestamps
-* Add branch management
-* Add merge functionality
-* Add automated tests
+```text
+Commit
+├── tree -> Tree
+├── parent -> Previous Commit
+├── author
+└── message
+```
 
-## Learning Goals
+This creates the history:
 
-This project was developed to understand the internal mechanisms behind distributed version-control systems, particularly:
+```text
+Commit C3
+    |
+    v
+Commit C2
+    |
+    v
+Commit C1
+```
 
+## Technologies
+
+* **C++17**
+* **CMake**
+* **CLI11** for command-line argument parsing
+* **OpenSSL SHA-256** for object hashing
+* `std::filesystem` for repository and file operations
+* STL containers and streams for repository data management
+
+## Project Goals
+
+The purpose of DAGit is to understand the internal design of a distributed version control system rather than simply use Git commands.
+
+The implementation focuses on:
+
+* File and object management
 * Content-addressable storage
-* SHA-1 hashing
-* Git-style blob and tree concepts
-* Recursive directory representation
-* Object graphs
-* Commit structures
-* Repository discovery
-* C++ filesystem operations
-* C++ object-oriented design
-* CLI application architecture
-* CMake-based C++ projects
-
-## License
-
-This project is intended primarily as an educational project.
+* Staging and snapshots
+* Commit history
+* References and branches
+* Filesystem operations
+* C++ systems programming concepts
